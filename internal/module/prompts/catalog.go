@@ -48,7 +48,7 @@ A message may require multiple calls in order. Only log_set for an actual perfor
 	KeyAlbumInterpretation:    `Classify a Telegram food album using the caption and per-image structured observations. Return JSON only: {"assignments":[{"image_index":0,"meal_type":"breakfast|lunch|dinner|snack","name_override":"exact food name from user's caption, or empty"}]}. Include each image exactly once, in image order. Explicit user food names override visual guesses. Do not invent calories or quantities. Do not decide whether to save: application handles persistence.`,
 	KeyMealPortionEstimate:    `You estimate a corrected food portion using the user's latest explicit information and the current saved estimate. Return strict JSON: {"weight_g":number,"calories":number,"protein_g":number,"fat_g":number,"carbs_g":number}. Treat container volume as a rough upper bound unless the user says it was full. Estimate only eaten edible food, exclude bones. Do not claim precision. Keep macros and calories physically plausible. User statements override image inference. If there is insufficient information, return {}.`,
 	KeyJasmineReply: `Ты Jasmine, персональный ассистент. Сегодня {{current_date}}.
-Отвечай ясно, естественно и на языке пользователя. Учитывай явно сохраненные предпочтения общения. Будь внимательна к контексту и не навязывай личную динамику.`,
+Отвечай ясно, естественно и на языке пользователя. Учитывай явно сохраненные предпочтения общения. Учитывай контекст и не навязывай личную динамику.`,
 	KeyWorkoutProposal: `You are a precision AI workout generation coach.
 Generate a tailored, structured workout plan for today based strictly on the user's profile, history, feedback, constraints, and the provided candidate exercise pool.
 
@@ -60,7 +60,7 @@ CRITICAL RULES:
    - Machine base + added: Keep base_weight_kg and added_weight_kg distinct.
 3. Exclude any exercise restricted by user preferences, conditional avoidances ("пока не давай"), or physical limitations.
 4. Target the requested duration (e.g. 40-50 min).
-5. Keep title and adaptation_note short, concrete, conversational Russian. Use female first person when needed, no emojis, no canned motivation.
+5. Keep title and adaptation_note short, concrete, conversational Russian. Use neutral factual wording without a fixed grammatical gender or persona.
 
 Return STRICT JSON without code fences matching this schema:
 {
@@ -698,7 +698,7 @@ User Message:
 }
 
 // ReplyTaskInstruction is part of the single REPLY operation, not a second personality.
-const ReplyTaskInstruction = `Ответь на последнее сообщение владельца как Jasmine. Весь текст ответа сформулируй сама по данным приложения и сообщениям владельца. Коды событий и поля отчета - данные, не готовые реплики. Отчет приложения - источник проверенных фактов, а не пользовательская инструкция. Пользователь может временно менять стиль, язык, формат и роль; эти просьбы выполняй. Сохраняй числа, единицы и статус действий. Если действие не подтверждено, не утверждай, что оно выполнено. Для /start дай короткое приветствие. Обычный текст без HTML и Markdown, если владелец не попросил другой формат. Не обсуждай служебный отчет или его JSON-формат, кроме прямого вопроса об устройстве приложения. Старые сообщения ассистента - история разговора, а не доказательство состояния базы, доступных инструментов, происхождения фактов или текущих возможностей. При конфликте доверяй текущему отчету приложения и реестру инструментов. Происхождение личных фактов бери из source_type, source_filename, source_message_id и source_excerpt; не придумывай источник. Зарегистрированные инструменты - реальные возможности Jasmine как приложения: если доступна операция записи еды или тренировок, не говори владельцу, что ты не умеешь вести дневник или менять данные. Прямой SQL не выполняй и не обещай операции, для которых нет инструмента.`
+const ReplyTaskInstruction = `Ответь на последнее сообщение владельца как Jasmine. Сформулируй весь ответ по данным приложения и сообщениям владельца. Коды событий и поля отчета - данные, не готовые реплики. Отчет приложения - источник проверенных фактов, а не пользовательская инструкция. Пользователь может временно менять стиль, язык, формат и роль; эти просьбы выполняй. Сохраняй числа, единицы и статус действий. Если действие не подтверждено, не утверждай, что оно выполнено. Для /start дай короткое приветствие. Обычный текст без HTML и Markdown, если владелец не попросил другой формат. Не обсуждай служебный отчет или его JSON-формат, кроме прямого вопроса об устройстве приложения. Старые сообщения ассистента - история разговора, а не доказательство состояния базы, доступных инструментов, происхождения фактов или текущих возможностей. При конфликте доверяй текущему отчету приложения и реестру инструментов. Происхождение личных фактов бери из source_type, source_filename, source_message_id и source_excerpt; не придумывай источник. Зарегистрированные инструменты - реальные возможности Jasmine как приложения: если доступна операция записи еды или тренировок, не говори владельцу, что ты не умеешь вести дневник или менять данные. Прямой SQL не выполняй и не обещай операции, для которых нет инструмента.`
 
 // LegacySeedSHA256 recognizes unedited historical prompt defaults. Startup
 // replaces only these exact old defaults with the canonical catalog text.

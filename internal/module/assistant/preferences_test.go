@@ -65,3 +65,35 @@ func TestPreferenceValidationAndCorePromptBoundary(t *testing.T) {
 		t.Fatal("preference layer missing after base personality")
 	}
 }
+
+func TestNegatedCommunicationPreferences(t *testing.T) {
+	p := NewAssistantPreferences(nil, nil, "")
+	for _, row := range []struct{ text, key, rejected string }{
+		{"не пиши подробно", "verbosity", "detailed"},
+		{"не пиши коротко", "verbosity", "concise"},
+		{"не отвечай теперь кратко", "verbosity", "concise"},
+		{"пиши не подробно", "verbosity", "detailed"},
+		{"не говори по-английски", "language", "en"},
+		{"не добавляй эмодзи", "emoji", "allowed"},
+	} {
+		changes, err := p.Extract(context.Background(), row.text)
+		if err != nil || changes.Set[row.key] == row.rejected || changes.Rules == nil {
+			t.Fatalf("negative command interpreted as positive: %s, %+v, %v", row.text, changes, err)
+		}
+		profile := emptyCommunicationProfile()
+		profile.Settings[row.key] = row.rejected
+		profile.Settings["tone"] = "friendly"
+		profile = applyPreferenceChanges(profile, changes)
+		if profile.Settings[row.key] == row.rejected || profile.Settings["tone"] != "friendly" {
+			t.Fatalf("negative setting not removed or unrelated preference lost: %+v", profile)
+		}
+	}
+	changes, err := p.Extract(context.Background(), "не пиши подробно, а пиши коротко")
+	if err != nil || changes.Set["verbosity"] != "concise" {
+		t.Fatalf("positive alternative lost: %+v %v", changes, err)
+	}
+	changes, err = p.Extract(context.Background(), "не пиши коротко, но используй эмодзи")
+	if err != nil || changes.Set["verbosity"] == "concise" || changes.Set["emoji"] != "allowed" {
+		t.Fatalf("mixed negative/positive command broken: %+v %v", changes, err)
+	}
+}

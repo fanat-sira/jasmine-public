@@ -23,10 +23,11 @@ type CommunicationProfile struct {
 	Personality  string            `json:"personality,omitempty"`
 }
 type PreferenceChanges struct {
-	Set          map[string]string `json:"set,omitempty"`
-	Forget       []string          `json:"forget,omitempty"`
-	Rules        *[]string         `json:"custom_rules,omitempty"`
-	Instructions *string           `json:"custom_instructions,omitempty"`
+	Avoid        map[string][]string `json:"avoid,omitempty"`
+	Set          map[string]string   `json:"set,omitempty"`
+	Forget       []string            `json:"forget,omitempty"`
+	Rules        *[]string           `json:"custom_rules,omitempty"`
+	Instructions *string             `json:"custom_instructions,omitempty"`
 }
 type AssistantPreferences struct {
 	db               *pgxpool.Pool
@@ -67,6 +68,13 @@ func validatePreferenceChanges(c PreferenceChanges) error {
 			return errors.New("unknown communication preference or value")
 		}
 	}
+	for key, values := range c.Avoid {
+		for _, value := range values {
+			if err := validatePreferenceChanges(PreferenceChanges{Set: map[string]string{key: value}}); err != nil {
+				return err
+			}
+		}
+	}
 	for _, key := range c.Forget {
 		if _, ok := preferenceEnums[key]; !ok {
 			return errors.New("unknown communication preference")
@@ -90,6 +98,13 @@ func validatePreferenceChanges(c PreferenceChanges) error {
 func applyPreferenceChanges(profile CommunicationProfile, c PreferenceChanges) CommunicationProfile {
 	if profile.Settings == nil {
 		profile.Settings = map[string]string{}
+	}
+	for key, values := range c.Avoid {
+		for _, value := range values {
+			if profile.Settings[key] == value {
+				delete(profile.Settings, key)
+			}
+		}
 	}
 	for _, key := range c.Forget {
 		delete(profile.Settings, key)

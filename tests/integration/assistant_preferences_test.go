@@ -112,6 +112,20 @@ func TestPostgreSQL_AssistantPreferencesVersionsAndIsolation(t *testing.T) {
 	if err = pool.QueryRow(ctx, `SELECT count(*) FROM assistant_preference_revisions WHERE user_id=$1`, one.UserID).Scan(&revisions); err != nil || revisions != 12 {
 		t.Fatal("revision provenance lost")
 	}
+
+	e.UpdateID = 499
+	if _, err = p.Mutate(ctx, e, assistant.PreferenceChanges{Set: map[string]string{"verbosity": "detailed"}}, "replace", "", ""); err != nil {
+		t.Fatal(err)
+	}
+	e.UpdateID = 500
+	e.Text = "не пиши подробно"
+	if _, _, err = p.Handle(ctx, e); err != nil {
+		t.Fatal(err)
+	}
+	negative, err := p.Load(ctx, one.UserID)
+	if err != nil || negative.Settings["verbosity"] == "detailed" || negative.Settings["emoji"] != "disabled" || len(negative.CustomRules) == 0 {
+		t.Fatalf("stored negative command ignored or unrelated setting lost: %+v %v", negative, err)
+	}
 }
 func TestPostgreSQL_PreferenceImportRequiresBoundConfirmation(t *testing.T) {
 	pool, cleanup := SetupTestDB(t)
