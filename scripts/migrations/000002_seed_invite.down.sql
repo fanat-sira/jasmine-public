@@ -1,0 +1,1 @@
+DELETE FROM invite_codes WHERE code = 'JASMINE-INVITE-2026';

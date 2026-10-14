@@ -1,0 +1,7 @@
+DELETE FROM invite_codes WHERE code IN (
+    'JASMINE-DEV-001',
+    'JASMINE-DEV-002',
+    'JASMINE-DEV-003',
+    'JASMINE-DEV-004',
+    'JASMINE-DEV-005'
+);

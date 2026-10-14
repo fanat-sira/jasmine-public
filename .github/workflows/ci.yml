@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache: false
+
+      - name: Install Gitleaks
+        run: go install github.com/zricethezav/gitleaks/v8@v8.30.1
+
+      - name: Scan history and checkout
+        run: |
+          gitleaks git . --log-opts="--all" --redact
+          gitleaks dir . --redact
+
+  test-and-build:
+    name: Test & Build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: jasmine_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache: true
+
+      # 1. Run standard Go unit tests
+      - name: Run Go Vet
+        run: go vet ./...
+
+      # 2. Run standard Go unit tests
+      - name: Run Go Unit Tests
+        run: go test -count=1 -v ./...
+
+      # 3. Run Go race detection
+      - name: Run Go Race Detection
+        run: go test -race -v ./...
+
+      # 4. Run Live PostgreSQL Integration Tests & Migration Verification
+      - name: Run PostgreSQL Integration Tests
+        env:
+          RUN_INTEGRATION_TESTS: '1'
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/jasmine_test?sslmode=disable
+        run: go test -count=1 -v ./tests/integration/...
+
+      # 5. Build Go Server Binary
+      - name: Build Go Server Binary
+        run: go build -v ./cmd/jasmine
+
+      # 6. Build the same production container used by Docker Compose.
+      - name: Build Production Docker Image
+        run: docker build --tag jasmine:ci .

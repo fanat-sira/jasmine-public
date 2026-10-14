@@ -1,0 +1,3 @@
+DROP TABLE assistant_preference_revisions;
+DROP TABLE assistant_preference_proposals;
+DROP TABLE assistant_preferences;

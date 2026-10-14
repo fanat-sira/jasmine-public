@@ -1,0 +1,72 @@
+# Бинарники и артефакты сборки
+bin/
+dist/
+*.exe
+*.test
+*.out
+coverage.out
+/jasmine
+/jasmine-import
+/amazedby
+/server
+/seed
+
+# Переменные окружения (НИКОГДА не коммитить!)
+.env
+.env.local
+.env.*.local
+.env.*
+!.env.example
+
+# Локальная резервная копия Git при переносе репозитория
+.git.new-backup/
+
+# Зависимости
+vendor/
+
+# IDE и редакторы
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Логи
+*.log
+
+# Сертификаты SSL
+deployments/nginx/certs/
+
+# Тестовые данные
+testdata/
+
+# Локальные данные и черновики, не предназначенные для публикации
+profile.json
+profile.md
+workouts.json
+food.xml
+prompt.xml
+Практический_план_разработки_мобильного_фитнес_трекера_с_AI_функциями.pdf
+
+# Local agent configuration and private exports
+.agents/
+.codex/
+.aws/
+*.pem
+*.key
+*.p12
+*.pfx
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.sql.gz
+
+# Python test and script artifacts
+__pycache__/
+*.pyc
+
+# Private operator prompt overrides
+.private/

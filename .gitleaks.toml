@@ -1,0 +1,20 @@
+title = "Jasmine secret scanning"
+
+[extend]
+useDefault = true
+
+# Synthetic values used to verify rejection and redaction of credentials.
+# Match both the exact fixture value and its test path; do not exempt test files.
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
+description = "Known synthetic credential fixtures in historical admin tests and diagnostic redaction tests"
+condition = "AND"
+paths = ['''(^|/)internal/module/admin/(admin_test|runtime_observability_test)\.go$''', '''(^|/)internal/pkg/observability/redaction_test\.go$''']
+regexTarget = "match"
+regexes = [
+  '''bot123456789:ABC-DEF1234ghIkl-zyx''',
+  '''sk-or-v1-abcdef12345678901234567890''',
+  '''sk-or-v1-abcdef123456\b''',
+]

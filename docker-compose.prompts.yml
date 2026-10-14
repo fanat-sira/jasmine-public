@@ -1,0 +1,12 @@
+# Optional read-only operator file; it is never copied into the application image.
+services:
+  jasmine-app:
+    environment:
+      JASMINE_PROMPT_OVERRIDES_FILE: /run/jasmine/prompts.json
+    volumes:
+      - type: bind
+        source: ${JASMINE_PROMPT_OVERRIDES_HOST_FILE:?Set the absolute path of the private prompt JSON file}
+        target: /run/jasmine/prompts.json
+        read_only: true
+        bind:
+          create_host_path: false

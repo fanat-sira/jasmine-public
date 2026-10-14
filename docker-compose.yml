@@ -1,0 +1,100 @@
+name: jasmine
+
+services:
+
+  # ─── Migrations (запускается до app, выполняет SQL и завершается) ─────────
+  jasmine-migrate:
+    image: migrate/migrate:latest
+    container_name: jasmine-migrate
+    volumes:
+      - ./scripts/migrations:/migrations:ro
+    command:
+      - "-path=/migrations"
+      - "-database=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@jasmine-postgres:5432/${POSTGRES_DB:-jasmine}?sslmode=disable"
+      - "up"
+    depends_on:
+      jasmine-postgres:
+        condition: service_healthy
+    networks:
+      - jasmine-internal
+    restart: on-failure
+
+  # ─── Exercise catalogue import (runs after migrations) ───────────────────
+  jasmine-catalog-import:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: jasmine:local
+    container_name: jasmine-catalog-import
+    command: ["./jasmine-import"]
+    environment:
+      DB_URL: "postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@jasmine-postgres:5432/${POSTGRES_DB:-jasmine}?sslmode=disable"
+    depends_on:
+      jasmine-migrate:
+        condition: service_completed_successfully
+    networks:
+      - jasmine-internal
+    restart: on-failure
+
+  # ─── Go приложение ───────────────────────────────────────────────────────
+  jasmine-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: jasmine:local
+    container_name: jasmine-app
+    restart: unless-stopped
+    env_file:
+      - ${JASMINE_ENV_FILE:-.env}
+    environment:
+      DB_URL: "postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@jasmine-postgres:5432/${POSTGRES_DB:-jasmine}?sslmode=disable"
+      ENV: "${ENV:-development}"
+      TELEGRAM_POLLING_MODE: "${TELEGRAM_POLLING_MODE:-true}"
+      SERVER_PORT: "8080"
+    # Polling only needs outbound access to Telegram; no host port is required.
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    depends_on:
+      jasmine-postgres:
+        condition: service_healthy
+      jasmine-migrate:
+        condition: service_completed_successfully
+      jasmine-catalog-import:
+        condition: service_completed_successfully
+    networks:
+      - jasmine-internal
+
+  # ─── PostgreSQL 16 (Внутренняя БД, без публикации на хост-порты) ──────────
+  jasmine-postgres:
+    image: postgres:16-alpine
+    container_name: jasmine-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-jasmine}
+    volumes:
+      - jasmine_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-jasmine}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - jasmine-internal
+
+
+volumes:
+  jasmine_postgres_data:
+    name: ${JASMINE_POSTGRES_VOLUME:-jasmine_jasmine_postgres_data}
+
+networks:
+  jasmine-internal:
+    driver: bridge
